@@ -1,3 +1,26 @@
+## JUCE with WASM-compatible subset
+
+This is a fork of JUCE with the smallest changes necessary to compile standalone
+headless audio applications to WASM. The goal is to support `JUCEApplication`,
+to provide a web-specific implementation for `juce_audio_devices`, and to
+support audio- and DSP-related modules like `juce_audio_basics`, `juce_dsp`,
+etc.
+
+Supported modules:
+- `juce_core`
+- `juce_audio_basics`
+- `juce_events`
+
+Other modules may work, but are untested.
+
+The WASM features in this fork are developed and tested on Ubuntu running under
+WSL2. The test code uses CMake for configuration, and is compiled using
+Emscripten with pthreads enabled.
+
+Original README content is below.
+
+--------
+
 ![alt text](https://assets.juce.com/juce/JUCE_banner_github.png "JUCE")
 
 JUCE is an open-source cross-platform C++ application framework for creating
