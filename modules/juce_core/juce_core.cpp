@@ -79,7 +79,7 @@
  #endif
 
  #if JUCE_WASM
-  #include <emscripten/emscripten.h>
+  #include <emscripten.h>
   #include <stdio.h>
   #include <sys/types.h>
   #include <sys/socket.h>
@@ -87,6 +87,8 @@
   #include <unistd.h>
   #include <netinet/in.h>
   #include <sys/stat.h>
+  #include <deque>
+  #include <mutex>
  #endif
 
  #if JUCE_LINUX || JUCE_BSD

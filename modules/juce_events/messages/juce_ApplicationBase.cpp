@@ -86,7 +86,7 @@ void JUCEApplicationBase::sendUnhandledException (const std::exception* const e,
 }
 
 //==============================================================================
-#if ! (JUCE_IOS || JUCE_ANDROID)
+#if ! (JUCE_IOS || JUCE_ANDROID || JUCE_WASM)
  #define JUCE_HANDLE_MULTIPLE_INSTANCES 1
 #endif
 
@@ -199,7 +199,7 @@ StringArray JUCE_CALLTYPE JUCEApplicationBase::getCommandLineParameterArray()
  extern "C" int juce_gtkWebkitMain (int argc, const char* const* argv);
 #endif
 
-#if JUCE_WINDOWS
+#if JUCE_WINDOWS || JUCE_WASM
  const char* const* juce_argv = nullptr;
  int juce_argc = 0;
 #else
