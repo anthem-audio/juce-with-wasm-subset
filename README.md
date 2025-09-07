@@ -15,7 +15,13 @@ Other modules may work, but are untested.
 
 The WASM features in this fork are developed and tested on Ubuntu running under
 WSL2. The test code uses CMake for configuration, and is compiled using
-Emscripten with pthreads enabled.
+Emscripten with pthreads enabled. The following CMake configuration is also
+required to compile under Emscripten:
+
+```cmake
+# Disable Juceaide
+set(JUCE_MODULES_ONLY ON)
+```
 
 Original README content is below.
 
