@@ -87,8 +87,6 @@
   #include <unistd.h>
   #include <netinet/in.h>
   #include <sys/stat.h>
-  #include <deque>
-  #include <mutex>
  #endif
 
  #if JUCE_LINUX || JUCE_BSD

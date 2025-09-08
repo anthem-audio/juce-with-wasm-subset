@@ -34,25 +34,48 @@
 
 #include <emscripten.h>
 
+#include <deque>
+#include <mutex>
+
 namespace juce
 {
 
-void MessageManager::doPlatformSpecificInitialisation() {
-  MAIN_THREAD_EM_ASM({
-    console.log("doPlatformSpecificInitialisation from JS");
-  });
+static std::deque<MessageManager::MessageBase*> messageQueue;
+static std::mutex messageQueueMutex;
+
+static void dispatchMessages() {
+  messageQueueMutex.lock();
+  std::deque<MessageManager::MessageBase*> queueCopy;
+  queueCopy.swap(messageQueue);
+  messageQueueMutex.unlock();
+
+  while (!queueCopy.empty()) {
+    MessageManager::MessageBase* msg = queueCopy.front();
+    queueCopy.pop_front();
+    msg->messageCallback();
+    msg->decReferenceCount();
+  }
 }
 
-void MessageManager::doPlatformSpecificShutdown() {
-  MAIN_THREAD_EM_ASM({
-    console.log("doPlatformSpecificShutdown from JS");
-  });
-}
+void MessageManager::doPlatformSpecificInitialisation() {}
 
-bool MessageManager::postMessageToSystemQueue(juce::MessageManager::MessageBase*) {
-  return false;
+void MessageManager::doPlatformSpecificShutdown() {}
+
+bool MessageManager::postMessageToSystemQueue(MessageManager::MessageBase* message) {
+  messageQueueMutex.lock();
+  messageQueue.push_back(message);
+  messageQueueMutex.unlock();
+  return true;
 }
 
 void MessageManager::broadcastMessage(const String&) {}
+
+void MessageManager::runDispatchLoop() {
+  emscripten_set_main_loop(dispatchMessages, 0, true);
+}
+
+void MessageManager::stopDispatchLoop() {
+  emscripten_cancel_main_loop();
+}
 
 }
