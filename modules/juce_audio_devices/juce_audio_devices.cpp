@@ -243,6 +243,10 @@ namespace juce
   }
  #endif
 
+#elif JUCE_WASM
+
+#include "native/juce_AudioWorklet_wasm.cpp"
+
 #endif
 
 #if (JUCE_LINUX || JUCE_BSD || JUCE_MAC || JUCE_WINDOWS) && JUCE_JACK
