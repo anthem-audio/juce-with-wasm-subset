@@ -1042,15 +1042,17 @@ void JUCE_CALLTYPE Thread::setCurrentThreadAffinityMask ([[maybe_unused]] uint32
         }
     }
 
-   #if (! JUCE_ANDROID) && ((! (JUCE_LINUX || JUCE_BSD)) || ((__GLIBC__ * 1000 + __GLIBC_MINOR__) >= 2004))
+   #if (! JUCE_ANDROID) && ((! (JUCE_LINUX || JUCE_BSD || JUCE_WASM)) || ((__GLIBC__ * 1000 + __GLIBC_MINOR__) >= 2004))
     pthread_setaffinity_np (pthread_self(), sizeof (cpu_set_t), &affinity);
    #elif JUCE_ANDROID
     sched_setaffinity (gettid(), sizeof (cpu_set_t), &affinity);
-   #else
+   #elif (! JUCE_WASM)
     // NB: this call isn't really correct because it sets the affinity of the process,
     // (getpid) not the thread (not gettid). But it's included here as a fallback for
     // people who are using ridiculously old versions of glibc
     sched_setaffinity (getpid(), sizeof (cpu_set_t), &affinity);
+   #else
+    // Not supported on WASM
    #endif
 
     sched_yield();

@@ -246,6 +246,7 @@ namespace juce
 #elif JUCE_WASM
 
 #include "native/juce_AudioWorklet_wasm.cpp"
+#include "native/juce_Midi_wasm.cpp"
 
 #endif
 
