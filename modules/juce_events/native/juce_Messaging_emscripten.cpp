@@ -52,7 +52,13 @@ static void dispatchMessages() {
   while (!queueCopy.empty()) {
     MessageManager::MessageBase* msg = queueCopy.front();
     queueCopy.pop_front();
-    msg->messageCallback();
+
+    JUCE_TRY
+    {
+        msg->messageCallback();
+    }
+    JUCE_CATCH_EXCEPTION
+
     msg->decReferenceCount();
   }
 }
