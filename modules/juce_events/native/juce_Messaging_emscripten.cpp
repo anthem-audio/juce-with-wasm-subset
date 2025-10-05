@@ -62,6 +62,7 @@ void MessageManager::doPlatformSpecificInitialisation() {}
 void MessageManager::doPlatformSpecificShutdown() {}
 
 bool MessageManager::postMessageToSystemQueue(MessageManager::MessageBase* message) {
+  message->incReferenceCount();
   messageQueueMutex.lock();
   messageQueue.push_back(message);
   messageQueueMutex.unlock();
