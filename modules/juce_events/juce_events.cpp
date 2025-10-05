@@ -109,6 +109,6 @@
  #include "native/juce_Messaging_android.cpp"
 
 #elif JUCE_WASM
- #include "native/juce_Messaging_emscripten.cpp"
+ #include "native/juce_Messaging_wasm.cpp"
 
 #endif
