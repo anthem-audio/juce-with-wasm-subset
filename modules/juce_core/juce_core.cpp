@@ -80,6 +80,7 @@
 
  #if JUCE_WASM
   #include <emscripten.h>
+  #include <chrono>
   #include <stdio.h>
   #include <sys/types.h>
   #include <sys/socket.h>

@@ -68,7 +68,11 @@ void CPUInformation::initialise() noexcept
 //==============================================================================
 uint32 juce_millisecondsSinceStartup() noexcept
 {
-    return static_cast<uint32> (emscripten_get_now());
+    using clock = std::chrono::steady_clock;
+    static const auto t0 = clock::now();
+    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - t0).count();
+    std::cout << ms << std::endl;
+    return static_cast<uint32>(static_cast<uint64_t>(ms) & 0xFFFFFFFFu);
 }
 
 int64 Time::getHighResolutionTicks() noexcept
