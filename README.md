@@ -1,15 +1,21 @@
 ## JUCE with WASM-compatible subset
 
+⚠️⚠️⚠️ Important information about this fork ⚠️⚠️⚠️
+
 This is a fork of JUCE with the smallest changes necessary to compile standalone
 headless audio applications to WASM. The goal is to support `JUCEApplication`,
 to provide a web-specific implementation for `juce_audio_devices`, and to
 support audio- and DSP-related modules like `juce_audio_basics`, `juce_dsp`,
 etc.
 
-Supported modules:
+The following modules are at least partially supported on web:
+
 - `juce_core`
-- `juce_audio_basics`
 - `juce_events`
+- `juce_audio_basics`
+- `juce_audio_devices`
+   - Only two-channel audio output is supported right now. Audio input and MIDI are both still unsupported, with plans to implement in the future.
+   - Implementation note: If you call `AudioIODevice::stop()` while using the Emscripten implementation, **audio will no longer work until the application is restarted**, even if `AudioIODevice::start()` is called. This could be fixed if necessary - see [modules/juce_audio_devices/native/juce_AudioWorklet_wasm.cpp](modules/juce_audio_devices/native/juce_AudioWorklet_wasm.cpp).
 
 Other modules may work, but are untested.
 
@@ -19,8 +25,26 @@ Emscripten with pthreads enabled. The following CMake configuration is also
 required to compile under Emscripten:
 
 ```cmake
-# Disable Juceaide
-set(JUCE_MODULES_ONLY ON)
+add_subdirectory(path/to/JUCE)
+```
+
+Along with this, the following Emscripten compile options are necessary:
+
+```cmake
+add_compile_options(
+  -pthread
+)
+
+add_link_options(
+  -pthread
+
+  "SHELL:-sPROXY_TO_PTHREAD=1"
+  "SHELL:-sMODULARIZE=1"
+
+  # This probably isn't strictly necessary, but it allows
+  # juce::ApplicationBase::quit() to work.
+  "SHELL:-sEXIT_RUNTIME=1"
+)
 ```
 
 Original README content is below.
