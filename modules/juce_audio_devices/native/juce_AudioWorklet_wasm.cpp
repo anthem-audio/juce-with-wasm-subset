@@ -445,7 +445,14 @@ registerProcessor('juce-app-processor', JuceAppProcessor);
     }
 
     void stop() {
+        // Note: After stopping, start() will not work anymore. This port
+        // doesn't support restarting the audio context, as it's not needed for
+        // our use case. If needed, this could be fixed.
+        EM_ASM({
+            Module.audioContext?.close();
+        });
         audioThread.callback = nullptr;
+        audioThread.stopThread(2000);
     }
 
     bool isPlaying() const {
