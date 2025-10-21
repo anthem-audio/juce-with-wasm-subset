@@ -26,6 +26,10 @@ required to compile under Emscripten:
 
 ```cmake
 add_subdirectory(path/to/JUCE)
+
+# Disable Juceaide, which isn't currently supported. In a multi-platform build,
+# you would likely want to gate this as WASM-only.
+set(JUCE_MODULES_ONLY ON)
 ```
 
 Along with this, the following Emscripten compile options are necessary:
