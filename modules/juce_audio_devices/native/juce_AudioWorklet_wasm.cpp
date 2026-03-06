@@ -41,9 +41,6 @@
 namespace juce
 {
 
-class MidiInput::Pimpl {};
-class MidiOutput::Pimpl {};
-
 class AudioRingBufferWasm {
 public:
   uint32_t head;
