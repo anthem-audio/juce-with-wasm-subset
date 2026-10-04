@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -46,12 +46,25 @@ MessageManager::MessageManager() noexcept
 
 MessageManager::~MessageManager() noexcept
 {
+    // Refuse new posts without calling stopDispatchLoop()
+    quitMessagePosted = true;
+
+    JUCE_TRY
+    {
+        notifyLifetimeStopping();
+    }
+    JUCE_CATCH_EXCEPTION
+
+    DeletedAtShutdown::deleteAll();
+
     broadcaster.reset();
 
     doPlatformSpecificShutdown();
 
     jassert (instance == this);
-    instance = nullptr;  // do this last in case this instance is still needed by doPlatformSpecificShutdown()
+
+    // do this last in case this instance is still needed by any shutdown code
+    instance = nullptr;
 }
 
 MessageManager* MessageManager::instance = nullptr;
@@ -62,6 +75,7 @@ MessageManager* MessageManager::getInstance()
     {
         instance = new MessageManager();
         doPlatformSpecificInitialisation();
+        notifyLifetimeStarting();
     }
 
     return instance;
@@ -77,12 +91,51 @@ void MessageManager::deleteInstance()
     deleteAndZero (instance);
 }
 
+namespace
+{
+    // Namespace-scope so this exists before any LifetimeListener is
+    // constructed and remains until after they are destroyed. Do not make
+    // this a function-local static because it would be destroyed before some
+    // listeners, and calling getLifetimeListeners() from their destructors
+    // would be undefined behaviour.
+    bool lifetimeListenersDeleted = false;
+}
+
+MessageManager::LifetimeListenerList* MessageManager::getLifetimeListeners()
+{
+    // Check before touching the function-local static: after Holder is
+    // destroyed, accessing it is undefined behaviour.
+    if (lifetimeListenersDeleted)
+        return nullptr;
+
+    struct Holder
+    {
+        ~Holder() { lifetimeListenersDeleted = true; }
+        LifetimeListenerList list;
+    };
+
+    static Holder holder;
+    return &holder.list;
+}
+
+void MessageManager::notifyLifetimeStarting()
+{
+    if (auto* list = getLifetimeListeners())
+        list->call (&LifetimeListener::messageManagerStarting);
+}
+
+void MessageManager::notifyLifetimeStopping()
+{
+    if (auto* list = getLifetimeListeners())
+        list->call (&LifetimeListener::messageManagerStopping);
+}
+
 //==============================================================================
 bool MessageManager::MessageBase::post()
 {
     auto* mm = MessageManager::instance;
 
-    if (mm == nullptr || mm->quitMessagePosted.get() != 0 || ! postMessageToSystemQueue (this))
+    if (mm == nullptr || mm->quitMessagePosted || ! postMessageToSystemQueue (this))
     {
         Ptr deleter (this); // (this will delete messages that were just created with a 0 ref count)
         return false;
@@ -117,7 +170,7 @@ void MessageManager::runDispatchLoop()
 {
     jassert (isThisTheMessageThread()); // must only be called by the message thread
 
-    while (quitMessageReceived.get() == 0)
+    while (! quitMessageReceived)
     {
         JUCE_TRY
         {
@@ -141,7 +194,7 @@ bool MessageManager::runDispatchLoopUntil (int millisecondsToRunFor)
 
     auto endTime = Time::currentTimeMillis() + millisecondsToRunFor;
 
-    while (quitMessageReceived.get() == 0)
+    while (! quitMessageReceived)
     {
         JUCE_TRY
         {
@@ -154,7 +207,7 @@ bool MessageManager::runDispatchLoopUntil (int millisecondsToRunFor)
             break;
     }
 
-    return quitMessageReceived.get() == 0;
+    return ! quitMessageReceived;
 }
 #endif
 
@@ -214,7 +267,7 @@ void MessageManager::setCurrentThreadAsMessageThread()
 bool MessageManager::currentThreadHasLockedMessageManager() const noexcept
 {
     auto thisThread = Thread::getCurrentThreadId();
-    return thisThread == messageThreadId || thisThread == threadWithLock.get();
+    return thisThread == messageThreadId || thisThread == threadWithLock;
 }
 
 bool MessageManager::existsAndIsLockedByCurrentThread() noexcept
@@ -454,6 +507,27 @@ void MessageManagerLock::exitSignalSent()
 }
 
 //==============================================================================
+// It's important that this is not marked constexpr, and that its definition
+// lives in the source file. This ensures that derived classes cannot have a
+// constexpr constructor, which in turn means they will be dynamically
+// initialised. Since lifetimeListenersDeleted is statically initialised and a
+// listener is dynamically initialised, the order in which they are created and
+// destroyed is guaranteed even between different translation units.
+MessageManager::LifetimeListener::LifetimeListener() = default;
+
+#if JUCE_ASSERTIONS_ENABLED_OR_LOGGED
+MessageManager::LifetimeListener::~LifetimeListener()
+{
+    // removeLifetimeListener() must be called before or during the
+    // destructor of the derived class!
+    if (auto* list = getLifetimeListeners())
+        jassert (! list->contains (this));
+}
+#else
+MessageManager::LifetimeListener::~LifetimeListener() = default;
+#endif
+
+//==============================================================================
 JUCE_API void JUCE_CALLTYPE initialiseJuce_GUI()
 {
     JUCE_AUTORELEASEPOOL
@@ -466,7 +540,6 @@ JUCE_API void JUCE_CALLTYPE shutdownJuce_GUI()
 {
     JUCE_AUTORELEASEPOOL
     {
-        DeletedAtShutdown::deleteAll();
         MessageManager::deleteInstance();
     }
 }

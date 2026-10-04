@@ -16,7 +16,7 @@
    framework to you, and you must discontinue the installation or download
    process and cease use of the JUCE framework.
 
-   JUCE End User Licence Agreement: https://juce.com/legal/juce-8-licence/
+   JUCE End User Licence Agreement: https://juce.com/legal/juce-9-licence/
    JUCE Privacy Policy: https://juce.com/juce-privacy-policy
    JUCE Website Terms of Service: https://juce.com/juce-website-terms-of-service/
 
@@ -494,11 +494,12 @@ namespace juce::build_tools
 
     RelativePath createXcassetsFolderFromIcons (const Icons& icons,
                                                 const File& targetFolder,
-                                                String projectFilenameRootString)
+                                                String projectFilenameRootString,
+                                                String iconName)
     {
         const auto assets      = targetFolder.getChildFile (projectFilenameRootString)
                                              .getChildFile ("Images.xcassets");
-        const auto iconSet     = assets.getChildFile ("AppIcon.appiconset");
+        const auto iconSet     = assets.getChildFile (iconName + ".appiconset");
         const auto launchImage = assets.getChildFile ("LaunchImage.launchimage");
 
         overwriteFileIfDifferentOrThrow (iconSet.getChildFile ("Contents.json"), getiOSAppIconContents());
