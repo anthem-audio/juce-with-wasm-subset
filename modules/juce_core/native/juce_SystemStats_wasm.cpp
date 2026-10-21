@@ -68,10 +68,11 @@ void CPUInformation::initialise() noexcept
 //==============================================================================
 uint32 juce_millisecondsSinceStartup() noexcept
 {
-    using clock = std::chrono::steady_clock;
-    static const auto t0 = clock::now();
-    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(clock::now() - t0).count();
-    return static_cast<uint32>(static_cast<uint64_t>(ms) & 0xFFFFFFFFu);
+    // std::chrono's monotonic clock is unavailable in AudioWorkletGlobalScope.
+    // emscripten_get_now() falls back to Date.now() there.
+    static const auto t0 = emscripten_get_now();
+    const auto ms = jmax (0.0, emscripten_get_now() - t0);
+    return static_cast<uint32> (static_cast<uint64_t> (ms) & 0xFFFFFFFFu);
 }
 
 int64 Time::getHighResolutionTicks() noexcept

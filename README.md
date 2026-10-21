@@ -15,13 +15,15 @@ The following modules are at least partially supported on web:
 - `juce_audio_basics`
 - `juce_audio_devices`
    - Only two-channel audio output is supported right now. Audio input and MIDI are both still unsupported, with plans to implement in the future.
-   - Implementation note: If you call `AudioIODevice::stop()` while using the Emscripten implementation, **audio will no longer work until the application is restarted**, even if `AudioIODevice::start()` is called. This could be fixed if necessary - see [modules/juce_audio_devices/native/juce_AudioWorklet_wasm.cpp](modules/juce_audio_devices/native/juce_AudioWorklet_wasm.cpp).
+   - Audio processing runs directly in a WebAssembly AudioWorklet, using the AudioContext's sample rate and render quantum. Stopping and starting the device is supported.
 
 Other modules may work, but are untested.
 
 The WASM features in this fork are developed and tested on Ubuntu running under
 WSL2. The test code uses CMake for configuration, and is compiled using
-Emscripten with pthreads enabled. The following CMake configuration is also
+Emscripten 6.0.13 with pthreads and Wasm Workers enabled. The mixed threading
+support is required because JUCE uses pthread identities and recursive mutexes
+inside its audio callback. The following CMake configuration is also
 required to compile under Emscripten:
 
 ```cmake
@@ -37,10 +39,13 @@ Along with this, the following Emscripten compile options are necessary:
 ```cmake
 add_compile_options(
   -pthread
+  "SHELL:-sWASM_WORKERS=1"
 )
 
 add_link_options(
   -pthread
+  "SHELL:-sWASM_WORKERS=1"
+  "SHELL:-sAUDIO_WORKLET=1"
 
   "SHELL:-sPROXY_TO_PTHREAD=1"
   "SHELL:-sMODULARIZE=1"
@@ -50,6 +55,9 @@ add_link_options(
   "SHELL:-sEXIT_RUNTIME=1"
 )
 ```
+
+The page must provide the cross-origin isolation headers required for shared
+WebAssembly memory. Audio playback must be resumed from a browser user gesture.
 
 Original README content is below.
 
